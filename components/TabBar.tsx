@@ -1,4 +1,6 @@
 "use client";
+import type { MouseEvent } from "react";
+
 const dim = "rgba(255,255,255,.42)";
 
 const Icon = ({ name, color }: { name: string; color: string }) => {
@@ -15,18 +17,18 @@ const Icon = ({ name, color }: { name: string; color: string }) => {
 };
 
 export type TabActions = {
-  onProfile: (e: React.MouseEvent) => void;
+  onProfile: (e: MouseEvent) => void;
   /** hidden toggle: swap the baked map photo */
-  onWallet: (e: React.MouseEvent) => void;
+  onWallet: (e: MouseEvent) => void;
   /** hidden toggle: show/hide the red route overlay */
-  onChat: (e: React.MouseEvent) => void;
+  onChat: (e: MouseEvent) => void;
   /** hidden toggle: route-edit drag handles */
-  onCalendar: (e: React.MouseEvent) => void;
+  onCalendar: (e: MouseEvent) => void;
 };
 
 export default function TabBar({ onProfile, onWallet, onChat, onCalendar }: TabActions) {
   const tabs = [
-    { icon: "home", label: "หน้าแรก", active: true, onClick: (e: React.MouseEvent) => e.stopPropagation() },
+    { icon: "home", label: "หน้าแรก", active: true, onClick: (e: MouseEvent) => e.stopPropagation() },
     { icon: "wallet", label: "รายได้", active: false, onClick: onWallet },
     { icon: "chat", label: "กล่องข้อความ", active: false, onClick: onChat },
     { icon: "calendar", label: "ตารางจอง", active: false, onClick: onCalendar },

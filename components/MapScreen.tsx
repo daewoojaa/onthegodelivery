@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import type { MouseEvent, PointerEvent as ReactPointerEvent } from "react";
 import TabBar from "./TabBar";
 import { JOB, ROUTE_PTS, routeD } from "@/lib/theme";
 
@@ -10,7 +11,7 @@ export default function MapScreen({ onScreenTap, onSecretTap, onSecretHold, onPr
   onScreenTap: () => void;
   onSecretTap: () => void;
   onSecretHold: () => void;
-  onProfile: (e: React.MouseEvent) => void;
+  onProfile: (e: MouseEvent) => void;
 }) {
   const [pts, setPts] = useState<Pt[]>(ROUTE_PTS);
   const [badge, setBadge] = useState<Pt>([104, 400]);
@@ -30,16 +31,16 @@ export default function MapScreen({ onScreenTap, onSecretTap, onSecretHold, onPr
     } catch {}
   }, []);
 
-  const toSvg = (e: PointerEvent | React.PointerEvent) => {
+  const toSvg = (e: globalThis.PointerEvent | ReactPointerEvent) => {
     const r = box.current!.getBoundingClientRect();
     return [((e.clientX - r.left) * W) / r.width, ((e.clientY - r.top) * H) / r.height] as Pt;
   };
 
-  const dragNode = (i: number) => (e: React.PointerEvent) => {
+  const dragNode = (i: number) => (e: ReactPointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
     let latest = pts;
-    const move = (ev: PointerEvent) => {
+    const move = (ev: globalThis.PointerEvent) => {
       const [x, y] = toSvg(ev);
       latest = latest.map((p, j) => (j === i ? [Math.round(Math.max(0, Math.min(W, x))), Math.round(Math.max(0, Math.min(H, y)))] as Pt : p));
       setPts(latest);
@@ -53,7 +54,7 @@ export default function MapScreen({ onScreenTap, onSecretTap, onSecretHold, onPr
     window.addEventListener("pointerup", up);
   };
 
-  const dragBadge = (e: React.PointerEvent) => {
+  const dragBadge = (e: ReactPointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -61,7 +62,7 @@ export default function MapScreen({ onScreenTap, onSecretTap, onSecretHold, onPr
     const ox = ((e.clientX - r.left) * W) / b.width;
     const oy = ((e.clientY - r.top) * H) / b.height;
     let latest = badge;
-    const move = (ev: PointerEvent) => {
+    const move = (ev: globalThis.PointerEvent) => {
       const [x, y] = toSvg(ev);
       latest = [Math.round(Math.max(0, Math.min(300, x - ox))), Math.round(Math.max(0, Math.min(740, y - oy)))];
       setBadge(latest);
@@ -77,7 +78,7 @@ export default function MapScreen({ onScreenTap, onSecretTap, onSecretHold, onPr
 
   const d = routeD(pts);
   const start = pts[0], end = pts[pts.length - 1];
-  const stop = (fn: () => void) => (e: React.MouseEvent) => { e.stopPropagation(); fn(); };
+  const stop = (fn: () => void) => (e: MouseEvent) => { e.stopPropagation(); fn(); };
 
   return (
     <div style={{ position: "absolute", inset: 0, background: "#12171a" }}>

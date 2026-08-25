@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
+import type { MouseEvent } from "react";
 import MapScreen from "./MapScreen";
 import LockScreen from "./LockScreen";
 import NotificationCard from "./NotificationCard";
@@ -20,7 +21,7 @@ export default function App() {
     else if (notif && taps.current >= 4) { taps.current = 0; setLock(false); setNotif(false); setDetail(false); }
   };
 
-  const goLock = (e: React.MouseEvent) => {
+  const goLock = (e: MouseEvent) => {
     e.stopPropagation();
     taps.current = 0;
     setLock(true);
