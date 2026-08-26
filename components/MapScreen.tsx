@@ -7,9 +7,7 @@ import { JOB, ROUTE_PTS, routeD } from "@/lib/theme";
 type Pt = [number, number];
 const W = 370, H = 790;
 
-export default function MapScreen({ onScreenTap, onSecretTap, onSecretHold, onProfile }: {
-  onScreenTap: () => void;
-  onSecretTap: () => void;
+export default function MapScreen({ onSecretHold, onProfile }: {
   onSecretHold: () => void;
   onProfile: (e: MouseEvent) => void;
 }) {
@@ -20,7 +18,6 @@ export default function MapScreen({ onScreenTap, onSecretTap, onSecretHold, onPr
   const [routeEdit, setRouteEdit] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const hold = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const held = useRef(false);
 
   useEffect(() => {
     try {
@@ -31,49 +28,62 @@ export default function MapScreen({ onScreenTap, onSecretTap, onSecretHold, onPr
     } catch {}
   }, []);
 
-  const toSvg = (e: globalThis.PointerEvent | ReactPointerEvent) => {
-    const r = box.current!.getBoundingClientRect();
-    return [((e.clientX - r.left) * W) / r.width, ((e.clientY - r.top) * H) / r.height] as Pt;
-  };
-
+  /** Drag in the 370x790 design space — the whole stage is scaled, so screen px must be converted. */
   const dragNode = (i: number) => (e: ReactPointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    const node = e.currentTarget as HTMLElement;
+    const b = box.current!.getBoundingClientRect();
+    const sx = W / b.width, sy = H / b.height;
+    const nr = node.getBoundingClientRect();
+    const gx = (e.clientX - (nr.left + nr.width / 2)) * sx;
+    const gy = (e.clientY - (nr.top + nr.height / 2)) * sy;
+    try { node.setPointerCapture(e.pointerId); } catch {}
     let latest = pts;
     const move = (ev: globalThis.PointerEvent) => {
-      const [x, y] = toSvg(ev);
-      latest = latest.map((p, j) => (j === i ? [Math.round(Math.max(0, Math.min(W, x))), Math.round(Math.max(0, Math.min(H, y)))] as Pt : p));
+      ev.preventDefault();
+      const x = Math.max(0, Math.min(W, (ev.clientX - b.left) * sx - gx));
+      const y = Math.max(0, Math.min(H, (ev.clientY - b.top) * sy - gy));
+      latest = latest.map((p, j) => (j === i ? [Math.round(x), Math.round(y)] as Pt : p));
       setPts(latest);
     };
     const up = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
+      node.removeEventListener("pointermove", move);
+      node.removeEventListener("pointerup", up);
+      node.removeEventListener("pointercancel", up);
       try { localStorage.setItem("otg-route-pts", JSON.stringify(latest)); } catch {}
     };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
+    node.addEventListener("pointermove", move);
+    node.addEventListener("pointerup", up);
+    node.addEventListener("pointercancel", up);
   };
 
   const dragBadge = (e: ReactPointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const node = e.currentTarget as HTMLElement;
     const b = box.current!.getBoundingClientRect();
-    const ox = ((e.clientX - r.left) * W) / b.width;
-    const oy = ((e.clientY - r.top) * H) / b.height;
+    const sx = W / b.width, sy = H / b.height;
+    const r = node.getBoundingClientRect();
+    const ox = (e.clientX - r.left) * sx, oy = (e.clientY - r.top) * sy;
+    try { node.setPointerCapture(e.pointerId); } catch {}
     let latest = badge;
     const move = (ev: globalThis.PointerEvent) => {
-      const [x, y] = toSvg(ev);
-      latest = [Math.round(Math.max(0, Math.min(300, x - ox))), Math.round(Math.max(0, Math.min(740, y - oy)))];
+      ev.preventDefault();
+      const x = Math.round((ev.clientX - b.left) * sx - ox);
+      const y = Math.round((ev.clientY - b.top) * sy - oy);
+      latest = [Math.max(0, Math.min(300, x)), Math.max(0, Math.min(740, y))];
       setBadge(latest);
     };
     const up = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
+      node.removeEventListener("pointermove", move);
+      node.removeEventListener("pointerup", up);
+      node.removeEventListener("pointercancel", up);
       try { localStorage.setItem("otg-badge-pos", JSON.stringify(latest)); } catch {}
     };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
+    node.addEventListener("pointermove", move);
+    node.addEventListener("pointerup", up);
+    node.addEventListener("pointercancel", up);
   };
 
   const d = routeD(pts);
@@ -82,8 +92,7 @@ export default function MapScreen({ onScreenTap, onSecretTap, onSecretHold, onPr
 
   return (
     <div style={{ position: "absolute", inset: 0, background: "#12171a" }}>
-      {/* map layer — tapping anywhere here pops the pending-job notification */}
-      <div ref={box} onClick={onScreenTap} style={{ position: "absolute", inset: 0, cursor: "pointer" }}>
+      <div ref={box} style={{ position: "absolute", inset: 0 }}>
         {mapPhoto ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src="/bg-map.webp" alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", transform: "translateX(-7px)", display: "block" }} />
@@ -103,7 +112,7 @@ export default function MapScreen({ onScreenTap, onSecretTap, onSecretHold, onPr
         </div>
         <div style={{ position: "absolute", left: end[0] - 12, top: end[1] - 12, width: 24, height: 24, borderRadius: "50%", background: "#e8e6e1", border: "5px solid #14191c", boxShadow: "0 0 0 2px #e8e6e1", pointerEvents: "none" }} />
 
-        <div onPointerDown={dragBadge} onClick={(e) => e.stopPropagation()} style={{ position: "absolute", left: badge[0], top: badge[1], display: "flex", flexDirection: "column", alignItems: "flex-start", cursor: "grab", touchAction: "none", filter: "drop-shadow(0 8px 18px rgba(0,0,0,.55))" }}>
+        <div onPointerDown={dragBadge} style={{ position: "absolute", left: badge[0], top: badge[1], display: "flex", flexDirection: "column", alignItems: "flex-start", cursor: "grab", touchAction: "none", filter: "drop-shadow(0 8px 18px rgba(0,0,0,.55))" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7, background: "#e11d2f", color: "#fff", padding: "6px 11px", borderRadius: 11, font: "600 14px/1 'Noto Sans Thai',sans-serif", whiteSpace: "nowrap" }}>
             <span>{JOB.eta} นาที</span>
             <span style={{ width: 1, height: 12, background: "rgba(255,255,255,.4)" }} />
@@ -113,7 +122,7 @@ export default function MapScreen({ onScreenTap, onSecretTap, onSecretHold, onPr
         </div>
 
         {routeEdit && pts.map((p, i) => (
-          <div key={i} onPointerDown={dragNode(i)} onClick={(e) => e.stopPropagation()} style={{ position: "absolute", left: p[0] - 11, top: p[1] - 11, width: 22, height: 22, borderRadius: "50%", background: "rgba(245,197,24,.9)", border: "2px solid #14191c", boxShadow: "0 2px 8px rgba(0,0,0,.5)", cursor: "grab", touchAction: "none" }} />
+          <div key={i} onPointerDown={dragNode(i)} style={{ position: "absolute", left: p[0] - 11, top: p[1] - 11, boxSizing: "border-box", width: 22, height: 22, borderRadius: "50%", background: "rgba(245,197,24,.9)", border: "2px solid #14191c", boxShadow: "0 2px 8px rgba(0,0,0,.5)", cursor: "grab", touchAction: "none" }} />
         ))}
 
         {routeEdit && (
@@ -123,14 +132,14 @@ export default function MapScreen({ onScreenTap, onSecretTap, onSecretHold, onPr
         )}
       </div>
 
-      {/* route header card — the yellow logo is the secret trigger */}
-      <div onClick={(e) => e.stopPropagation()} style={{ position: "absolute", top: 62, left: 14, right: 14, background: "rgba(17,21,24,.94)", border: "1px solid rgba(255,255,255,.09)", borderRadius: 20, padding: "14px 16px", boxShadow: "0 14px 34px rgba(0,0,0,.55)", backdropFilter: "blur(12px)" }}>
+      {/* route header card — long-press the white logo to reach the lock screen */}
+      <div style={{ position: "absolute", top: 62, left: 14, right: 14, background: "rgba(17,21,24,.94)", border: "1px solid rgba(255,255,255,.09)", borderRadius: 20, padding: "14px 16px", boxShadow: "0 14px 34px rgba(0,0,0,.55)", backdropFilter: "blur(12px)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div
-            onPointerDown={() => { held.current = false; hold.current = setTimeout(() => { held.current = true; onSecretHold(); }, 500); }}
-            onPointerUp={() => { if (hold.current) clearTimeout(hold.current); if (!held.current) onSecretTap(); }}
+            onPointerDown={() => { hold.current = setTimeout(onSecretHold, 500); }}
+            onPointerUp={() => { if (hold.current) clearTimeout(hold.current); }}
             onPointerLeave={() => { if (hold.current) clearTimeout(hold.current); }}
-            style={{ width: 34, height: 34, borderRadius: 10, background: "#f5c518", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flex: "none", touchAction: "none" }}
+            style={{ width: 34, height: 34, borderRadius: 10, background: "#f6f5f2", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flex: "none", touchAction: "none" }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/otg-mark.png" alt="" style={{ width: 26, display: "block", mixBlendMode: "multiply" }} />
@@ -166,8 +175,7 @@ export default function MapScreen({ onScreenTap, onSecretTap, onSecretHold, onPr
         <div style={{ font: "500 12px/1 'Noto Sans Thai',sans-serif", color: "#e8e6e1" }}>คุณออนไลน์อยู่</div>
       </div>
 
-      {/* bottom sheet — taps here must NOT pop the notification */}
-      <div onClick={(e) => e.stopPropagation()} style={{ position: "absolute", left: 0, right: 0, bottom: 0, background: "#171c1f", borderTop: "1px solid rgba(255,255,255,.08)", borderRadius: "26px 26px 0 0", padding: "14px 18px 10px" }}>
+      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, background: "#171c1f", borderTop: "1px solid rgba(255,255,255,.08)", borderRadius: "26px 26px 0 0", padding: "14px 18px 10px" }}>
         <div style={{ width: 40, height: 4, borderRadius: 2, background: "rgba(255,255,255,.18)", margin: "0 auto 14px" }} />
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
           <div>
