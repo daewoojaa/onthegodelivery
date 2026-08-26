@@ -25,5 +25,5 @@ export const JOB = {
   destination: "ร้านทิพย์ เบเกอรี่",
   eta: 31,
   distanceKm: 13,
-  arriveAt: "16.17",
+  arriveAt: "16.02",
 } as const;
