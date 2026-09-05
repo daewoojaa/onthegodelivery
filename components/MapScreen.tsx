@@ -7,9 +7,10 @@ import { JOB, ROUTE_PTS, routeD } from "@/lib/theme";
 type Pt = [number, number];
 const W = 370, H = 790;
 
-export default function MapScreen({ onSecretHold, onProfile }: {
+export default function MapScreen({ onSecretHold, onProfile, onOpenChat }: {
   onSecretHold: () => void;
   onProfile: (e: MouseEvent) => void;
+  onOpenChat: (e: MouseEvent) => void;
 }) {
   const [pts, setPts] = useState<Pt[]>(ROUTE_PTS);
   const [badge, setBadge] = useState<Pt>([104, 400]);
@@ -18,6 +19,8 @@ export default function MapScreen({ onSecretHold, onProfile }: {
   const [routeEdit, setRouteEdit] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const hold = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const chatHeld = useRef(false);
+  const chatHold = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     try {
@@ -192,7 +195,9 @@ export default function MapScreen({ onSecretHold, onProfile }: {
         <TabBar
           onProfile={onProfile}
           onWallet={stop(() => setMapPhoto((v) => !v))}
-          onChat={stop(() => setRouteOverlay((v) => !v))}
+          onChat={(e) => { e.stopPropagation(); if (!chatHeld.current) onOpenChat(e); }}
+          onChatHoldDown={(e) => { e.stopPropagation(); chatHeld.current = false; chatHold.current = setTimeout(() => { chatHeld.current = true; setRouteOverlay((v) => !v); }, 500); }}
+          onChatHoldUp={(e) => { e.stopPropagation(); if (chatHold.current) clearTimeout(chatHold.current); }}
           onCalendar={stop(() => setRouteEdit((v) => !v))}
         />
       </div>

@@ -20,17 +20,20 @@ export type TabActions = {
   onProfile: (e: MouseEvent) => void;
   /** hidden toggle: swap the baked map photo */
   onWallet: (e: MouseEvent) => void;
-  /** hidden toggle: show/hide the red route overlay */
+  /** opens the chat screen */
   onChat: (e: MouseEvent) => void;
+  /** hidden toggle: show/hide the red route overlay (long-press on chat tab) */
+  onChatHoldDown: (e: React.PointerEvent) => void;
+  onChatHoldUp: (e: React.PointerEvent) => void;
   /** hidden toggle: route-edit drag handles */
   onCalendar: (e: MouseEvent) => void;
 };
 
-export default function TabBar({ onProfile, onWallet, onChat, onCalendar }: TabActions) {
-  const tabs = [
-    { icon: "home", label: "หน้าแรก", active: true, onClick: (e: MouseEvent) => e.stopPropagation() },
+export default function TabBar({ onProfile, onWallet, onChat, onChatHoldDown, onChatHoldUp, onCalendar }: TabActions) {
+  const tabs: { icon: string; label: string; active: boolean; onClick: (e: MouseEvent) => void; onPointerDown?: (e: React.PointerEvent) => void; onPointerUp?: (e: React.PointerEvent) => void }[] = [
+    { icon: "home", label: "หน้าแรก", active: true, onClick: (e) => e.stopPropagation() },
     { icon: "wallet", label: "รายได้", active: false, onClick: onWallet },
-    { icon: "chat", label: "กล่องข้อความ", active: false, onClick: onChat },
+    { icon: "chat", label: "กล่องข้อความ", active: false, onClick: onChat, onPointerDown: onChatHoldDown, onPointerUp: onChatHoldUp },
     { icon: "calendar", label: "ตารางจอง", active: false, onClick: onCalendar },
     { icon: "profile", label: "โปรไฟล์", active: false, onClick: onProfile },
   ];
@@ -43,6 +46,9 @@ export default function TabBar({ onProfile, onWallet, onChat, onCalendar }: TabA
           <div
             key={t.label}
             onClick={t.onClick}
+            onPointerDown={t.onPointerDown}
+            onPointerUp={t.onPointerUp}
+            onPointerLeave={t.onPointerUp}
             style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, font: (t.active ? 500 : 400) + " 10px/1 'Noto Sans Thai',sans-serif", color, cursor: "pointer", minWidth: 44, minHeight: 44, justifyContent: "center" }}
           >
             <Icon name={t.icon} color={color} />

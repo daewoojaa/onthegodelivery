@@ -4,6 +4,7 @@ import type { MouseEvent } from "react";
 import MapScreen from "./MapScreen";
 import LockScreen from "./LockScreen";
 import DetailSheet from "./DetailSheet";
+import ChatScreen from "./ChatScreen";
 
 const W = 370, H = 790;
 
@@ -11,6 +12,7 @@ export default function App() {
   const [lock, setLock] = useState(false);
   const [notif, setNotif] = useState(false);
   const [detail, setDetail] = useState(false);
+  const [chat, setChat] = useState(false);
   const [scale, setScale] = useState(1);
   const taps = useRef(0);
   const tapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -64,9 +66,10 @@ export default function App() {
     <main style={{ position: "fixed", inset: 0, overflow: "hidden", background: "#0d0f10", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ position: "relative", width: W, height: H, flex: "none", transform: `scale(${scale})`, transformOrigin: "center center" }}>
         <div style={{ position: "absolute", inset: 0, overflow: "hidden", background: "#111517" }}>
-          <MapScreen onProfile={goLock} onSecretHold={() => { setLock(true); setNotif(false); setDetail(false); taps.current = 0; }} />
+          <MapScreen onProfile={goLock} onOpenChat={(e) => { e.stopPropagation(); setChat(true); }} onSecretHold={() => { setLock(true); setNotif(false); setDetail(false); taps.current = 0; }} />
           {lock && <LockScreen notif={notif} onTap={lockTap} onOpenDetail={() => { setDetail(true); setNotif(false); setLock(false); }} />}
           {detail && <DetailSheet onClose={closeAll} />}
+          {chat && <ChatScreen onClose={() => setChat(false)} />}
         </div>
       </div>
     </main>
